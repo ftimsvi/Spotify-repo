@@ -171,7 +171,6 @@ def deleteAccount():
             cur.close()
             conn.close()
             return jsonify({'message': 'Account deleted successfully'}), 200
-
         return jsonify({'message': 'Invalid credentials'}), 401
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Expired token'}), 400
