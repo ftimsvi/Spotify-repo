@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request
 import jwt
-from . import get_db_connection, SECRET_KEY
+from flask import Blueprint, jsonify, request
+
+from . import SECRET_KEY, get_db_connection
 
 artist = Blueprint('artist', __name__)
 
@@ -47,13 +48,30 @@ def getArtistsList():
     cur = conn.cursor()
 
     cur.execute(
-        'SELECT first_name, last_name, bio FROM Users, ARTIST WHERE is_artist = %s', (True,))
+        '''
+        SELECT u.first_name, u.last_name, a.bio 
+        FROM Users u
+        JOIN ARTIST a ON u.user_id = a.user_id 
+        WHERE u.is_artist = %s
+        ''', (True,)
+    )
     artists = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return jsonify({'artists': artists}), 200
+    # Format the response
+    artists_list = []
+    for artist in artists:
+        artist_dict = {
+            'first_name': artist[0],
+            'last_name': artist[1],
+            'bio': artist[2]
+        }
+        artists_list.append(artist_dict)
+
+    return jsonify({'artists': artists_list}), 200
+
 
 
 @artist.route('/artist/<int:artist_id>')
@@ -62,13 +80,26 @@ def getArtist(artist_id):
     cur = conn.cursor()
 
     cur.execute(
-        'SELECT first_name, last_name, bio FROM Users, ARTIST WHERE user_id = %s and is_artist = %s', (artist_id, True))
+        '''
+        SELECT u.first_name, u.last_name, a.bio 
+        FROM Users u
+        JOIN ARTIST a ON u.user_id = a.user_id 
+        WHERE a.artist_id = %s AND u.is_artist = %s
+        ''', (artist_id, True)
+    )
     artist = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    return jsonify({'artist': artist}), 200
+    if artist:
+        return jsonify({'artist': {
+            'first_name': artist[0],
+            'last_name': artist[1],
+            'bio': artist[2]
+        }}), 200
+    else:
+        return jsonify({'message': 'Artist not found'}), 404
 
 
 @artist.route('/artist/<int:artist_id>/albums')
