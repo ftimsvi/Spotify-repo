@@ -278,3 +278,39 @@ CREATE INDEX idx_playlist_tracks_playlist_id ON PLAYLIST_HAS_TRACKS(playlist_id)
 
 -- Index on track_id for faster joins
 CREATE INDEX idx_playlist_tracks_track_id ON PLAYLIST_HAS_TRACKS(track_id);
+
+
+
+CREATE TABLE FRIENDSHIP_REQUEST (
+    request_id SERIAL PRIMARY KEY,
+    user_id_sender INT NOT NULL,
+    user_id_receiver INT NOT NULL,
+    is_approved BOOLEAN,
+    send_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id_sender) REFERENCES USERS(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id_receiver) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
+
+-- Index on user_id_sender for faster joins
+CREATE INDEX idx_friendship_request_sender ON FRIENDSHIP_REQUEST(user_id_sender);
+
+-- Index on user_id_receiver for faster joins
+CREATE INDEX idx_friendship_request_receiver ON FRIENDSHIP_REQUEST(user_id_receiver);
+
+
+
+CREATE TABLE MESSAGE (
+    message_id SERIAL PRIMARY KEY,
+    user_id_sender INT NOT NULL,
+    user_id_receiver INT NOT NULL,
+    message_text TEXT NOT NULL,
+    send_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id_sender) REFERENCES USERS(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id_receiver) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
+
+-- Index on user_id_sender for faster joins
+CREATE INDEX idx_message_sender ON MESSAGE(user_id_sender);
+
+-- Index on user_id_receiver for faster joins
+CREATE INDEX idx_message_receiver ON MESSAGE(user_id_receiver);

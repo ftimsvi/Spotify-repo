@@ -1,6 +1,7 @@
 import datetime
 from flask import Blueprint, request, jsonify
 import jwt
+from sqlalchemy import Null
 from . import get_db_connection, SECRET_KEY
 
 home = Blueprint('home', __name__)
@@ -468,3 +469,106 @@ def getAllPlaylistsOfUser():
         return jsonify({'playlists': playlists}), 200
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/sendFriendshipRequest', methods=['GET', 'POST'])
+def sendOrGetFriendshipRequest():
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute(
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s',
+                (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
+            json_file = request.get_json()
+            receiver_id = json_file['receiver_id']
+
+            cur.execute(
+                'INSERT INTO FRIENDSHIP_REQUEST (user_id_sender, user_id_receiver) VALUES (%s, %s)',
+                (data['user_id'], receiver_id))
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return jsonify({'message': 'Friendship request sent successfully'}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
+
+    if request.method == 'GET':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute(
+                'SELECT * FROM Users WHERE user_id = %s and is_permium = %s',
+                (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
+            cur.execute('SELECT * FROM FRIENDSHIP_REQUEST WHERE user_id_receiver = %s and is_approved = %s',
+                        (data['user_id'], Null))
+            requests = cur.fetchall()
+
+            cur.close()
+            conn.close()
+
+            return jsonify({'requests': requests}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/approveFriendshipRequest', methods=['GET', 'POST'])
+def approveFriendshipRequest():
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute(
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s',
+                (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
+            json_file = request.get_json()
+            sender_id = json_file['sender_id']
+
+            cur.execute('UPDATE FRIENDSHIP_REQUEST SET is_approved = %s WHERE user_id_sender = %s and user_id_receiver = %s',
+                        (True, sender_id, data['user_id']))
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return jsonify({'message': 'Friendship request approved successfully'}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
