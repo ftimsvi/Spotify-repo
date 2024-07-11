@@ -168,21 +168,26 @@ def followUser(user_id):
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM Users WHERE user_id = %s', (user_id,))
-            user = cur.fetchone()
-
-            if not user:
-                return jsonify({'error': 'User not found'}), 400
+                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (data['user_id'], False))
+            current_user = cur.fetchone()
 
             cur.execute(
-                'INSERT INTO FOLLOWING (user_id1_following, user_id2_followed) VALUES (%s, %s)',
-                (data['user_id'], user_id))
-            conn.commit()
+                'SELECT * FROM Users WHERE user_id = %s', (user_id,))
+            followed_user = cur.fetchone()
 
-            cur.close()
-            conn.close()
+            if not followed_user:
+                return jsonify({'error': 'User not found'}), 400
 
-            return jsonify({'message': 'User followed successfully'}), 200
+            if current_user:
+                cur.execute(
+                    'INSERT INTO FOLLOWING (user_id1_following, user_id2_followed) VALUES (%s, %s)',
+                    (data['user_id'], user_id))
+                conn.commit()
+
+                cur.close()
+                conn.close()
+                return jsonify({'message': 'User followed successfully'}), 200
+            return jsonify({'error': 'User not found'}), 404
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Expired token'}), 400
 
@@ -201,19 +206,25 @@ def followArtist(artist_id):
             cur = conn.cursor()
 
             cur.execute(
+                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (data['user_id'], True))
+            user = cur.fetchone()
+
+            cur.execute(
                 'SELECT * FROM Artists WHERE artist_id = %s', (artist_id,))
             artist = cur.fetchone()
 
             if not artist:
                 return jsonify({'error': 'Artist not found'}), 400
 
-            cur.execute(
-                'INSERT INTO FOLLOWING (user_id1_following, user_id2_followed) VALUES (%s, %s)',
-                (data['user_id'], artist_id))
-            conn.commit()
+            if user:
+                cur.execute(
+                    'INSERT INTO FOLLOWING (user_id1_following, user_id2_followed) VALUES (%s, %s)',
+                    (data['user_id'], artist_id))
+                conn.commit()
 
-            cur.close()
-            conn.close()
+                cur.close()
+                conn.close()
+                return jsonify({'message': 'Artist followed successfully'}), 200
 
             return jsonify({'message': 'Artist followed successfully'}), 200
         except jwt.ExpiredSignatureError:
@@ -297,7 +308,8 @@ def getUserFollowers():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT user_id1_following FROM FOLLOWING WHERE user_id2_followed = %s', (data['user_id'],))
+            'SELECT first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id1_following FROM FOLLOWING WHERE user_id2_followed = %s)',
+            (data['user_id'],))
         followers = cur.fetchall()
 
         cur.close()
@@ -321,7 +333,8 @@ def getUserFollowings():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s', (data['user_id'],))
+            'SELECT first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
+            (data['user_id'],))
         followings = cur.fetchall()
 
         cur.close()
