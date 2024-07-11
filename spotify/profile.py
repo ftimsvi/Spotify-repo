@@ -1,8 +1,10 @@
 import datetime
-from flask import Blueprint, request, jsonify
+
 import jwt
-from werkzeug.security import generate_password_hash, check_password_hash
-from . import get_db_connection, SECRET_KEY
+from flask import Blueprint, jsonify, request
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from . import SECRET_KEY, get_db_connection
 
 profile = Blueprint('profile', __name__)
 
@@ -121,10 +123,19 @@ def upgradeToPremium():
 
             json_file = request.get_json()
             premium_duration = json_file['premium_duration']
+            if premium_duration == 90:
+                value = 140
+            elif premium_duration == 60:
+                value = 100
+            elif premium_duration == 30:
+                value = 60
+            else:
+                return jsonify({'message': 'Invalid day of subscription duration.'}), 401
+            
 
-            if user:
-                cur.execute('UPDATE Users SET is_premium = %s, start_premium = %s, end_premium = %s WHERE user_id = %s',
-                            (True, datetime.datetime.now(), datetime.datetime.now() + datetime.timedelta(days=int(premium_duration)), data['user_id']))
+            if user[8] == "f":
+                cur.execute('UPDATE Users SET balance = %s, is_premium = %s, start_premium = %s, end_premium = %s WHERE user_id = %s',
+                            (user[7]-value, True, datetime.datetime.now(), datetime.datetime.now() + datetime.timedelta(days=int(premium_duration)), data['user_id']))
                 conn.commit()
 
                 cur.close()
