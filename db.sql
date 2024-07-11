@@ -194,3 +194,87 @@ CREATE INDEX idx_likes_album_user_id ON SUBSCRIBERS_LIKES_ALBUM(user_id);
 
 -- Index on album_id for faster joins
 CREATE INDEX idx_likes_album_album_id ON SUBSCRIBERS_LIKES_ALBUM(album_id);
+
+
+
+CREATE TABLE PLAYLIST (
+    playlist_id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    name_of_playlist VARCHAR(100) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE
+);
+
+-- Index on user_id for faster joins
+CREATE INDEX idx_playlist_user_id ON PLAYLIST(user_id);
+
+-- Index on name_of_playlist for faster searches by playlist name
+CREATE INDEX idx_playlist_name_of_playlist ON PLAYLIST(name_of_playlist);
+
+
+
+CREATE TABLE SUBSCRIBERS_LIKES_PLAYLIST (
+    user_id INT NOT NULL,
+    playlist_id INT NOT NULL,
+    PRIMARY KEY (user_id, playlist_id),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id) ON DELETE CASCADE
+);
+
+-- Index on user_id for faster joins
+CREATE INDEX idx_likes_playlist_user_id ON SUBSCRIBERS_LIKES_PLAYLIST(user_id);
+
+-- Index on playlist_id for faster joins
+CREATE INDEX idx_likes_playlist_playlist_id ON SUBSCRIBERS_LIKES_PLAYLIST(playlist_id);
+
+
+
+CREATE TABLE SUBSCRIBERS_COMMENTS_ON_ALBUM (
+    user_id INT NOT NULL,
+    album_id INT NOT NULL,
+    comment_text TEXT NOT NULL,
+    comment_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, album_id, comment_time),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (album_id) REFERENCES ALBUMS(album_id) ON DELETE CASCADE
+);
+
+-- Index on user_id for faster joins
+CREATE INDEX idx_comments_album_user_id ON SUBSCRIBERS_COMMENTS_ON_ALBUM(user_id);
+
+-- Index on album_id for faster joins
+CREATE INDEX idx_comments_album_album_id ON SUBSCRIBERS_COMMENTS_ON_ALBUM(album_id);
+
+
+
+CREATE TABLE SUBSCRIBERS_COMMENTS_ON_PLAYLIST (
+    user_id INT NOT NULL,
+    playlist_id INT NOT NULL,
+    comment_text TEXT NOT NULL,
+    comment_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, playlist_id, comment_time),
+    FOREIGN KEY (user_id) REFERENCES USERS(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id) ON DELETE CASCADE
+);
+
+-- Index on user_id for faster joins
+CREATE INDEX idx_comments_playlist_user_id ON SUBSCRIBERS_COMMENTS_ON_PLAYLIST(user_id);
+
+-- Index on playlist_id for faster joins
+CREATE INDEX idx_comments_playlist_playlist_id ON SUBSCRIBERS_COMMENTS_ON_PLAYLIST(playlist_id);
+
+
+
+CREATE TABLE PLAYLIST_HAS_TRACKS (
+    playlist_id INT NOT NULL,
+    track_id INT NOT NULL,
+    PRIMARY KEY (playlist_id, track_id),
+    FOREIGN KEY (playlist_id) REFERENCES PLAYLIST(playlist_id) ON DELETE CASCADE,
+    FOREIGN KEY (track_id) REFERENCES TRACKS(track_id) ON DELETE CASCADE
+);
+
+-- Index on playlist_id for faster joins
+CREATE INDEX idx_playlist_tracks_playlist_id ON PLAYLIST_HAS_TRACKS(playlist_id);
+
+-- Index on track_id for faster joins
+CREATE INDEX idx_playlist_tracks_track_id ON PLAYLIST_HAS_TRACKS(track_id);

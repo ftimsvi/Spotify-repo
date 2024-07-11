@@ -343,3 +343,128 @@ def getUserFollowings():
         return jsonify({'followings': followings}), 200
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/createPlaylist', methods=['GET', 'POST'])
+def createPlaylist():
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute(
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s', (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
+            json_file = request.get_json()
+            name_of_playlist = json_file['name_of_playlist']
+            type_of_playlist = json_file['type']
+
+            cur.execute(
+                'INSERT INTO PLAYLISTS (user_id, name_of_playlist, type) VALUES (%s, %s, %s)',
+                (data['user_id'], name_of_playlist, type_of_playlist))
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return jsonify({'message': 'Playlist created successfully'}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/<int:playlist_id>/addTrackToPlaylist', methods=['GET', 'POST'])
+def addTrackToPlaylist(playlist_id):
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            cur.execute(
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s', (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
+            cur.execute(
+                'SELECT * FROM PLAYLISTS WHERE playlist_id = %s', (playlist_id,))
+            playlist = cur.fetchone()
+
+            if not playlist:
+                return jsonify({'error': 'Playlist not found'}), 400
+
+            json_file = request.get_json()
+            track_id = json_file['track_id']
+
+            cur.execute(
+                'INSERT INTO PLAYLIST_HAS_TRACKS (playlist_id, track_id) VALUES (%s, %s)',
+                (playlist_id, track_id))
+            conn.commit()
+
+            cur.close()
+            conn.close()
+
+            return jsonify({'message': 'Track added to playlist successfully'}), 200
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/getAllPlaylists')
+def getAllPlaylists():
+    token = request.headers.get('Authorization').split()[1]
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute('SELECT * FROM PLAYLISTS')
+        playlists = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({'playlists': playlists}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/getAllPlaylistsOfUser')
+def getAllPlaylistsOfUser():
+    token = request.headers.get('Authorization').split()[1]
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    try:
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute('SELECT * FROM PLAYLISTS WHERE user_id = %s',
+                    (data['user_id'],))
+        playlists = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({'playlists': playlists}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Expired token'}), 400
