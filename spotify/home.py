@@ -652,7 +652,7 @@ def getAllTracks():
     cur = conn.cursor()
 
     cur.execute(
-        'SELECT t.track_id, t.name_of_track, t.age_category, t.lyric, t.length, t.date_of_release, a.name_of_album, art.first_name, art.last_name, u.first_name, u.last_name \
+        'SELECT t.track_id, t.name_of_track, t.age_category, t.lyric, t.length, t.date_of_release, a.name_of_album, u.first_name, u.last_name \
             FROM TRACKS t \
             LEFT JOIN ALBUMS a ON t.album_id = a.album_id \
             JOIN ARTIST art ON t.artist_id = art.artist_id \
