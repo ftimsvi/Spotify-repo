@@ -49,7 +49,7 @@ def getArtistsList():
 
     cur.execute(
         '''
-        SELECT u.first_name, u.last_name, a.bio 
+        SELECT a.artist_id, u.first_name, u.last_name, a.bio 
         FROM Users u
         JOIN ARTIST a ON u.user_id = a.user_id 
         WHERE u.is_artist = %s

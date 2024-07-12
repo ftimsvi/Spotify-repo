@@ -569,3 +569,49 @@ def approveFriendshipRequest():
             return jsonify({'message': 'Friendship request approved successfully'}), 200
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Expired token'}), 400
+
+
+@home.route('/showPlaylistsToUser')
+def showPlaylistsToUser():
+    token = request.headers.get('Authorization').split()[1]
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    try:
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            'SELECT * FROM Users WHERE user_id = %s and is_premium = %s',
+            (data['user_id'], True))
+        user = cur.fetchone()
+
+        if not user:
+            return jsonify({'error': 'User not found or not premium'}), 400
+
+        cur.execute('SELECT * FROM PLAYLIST')
+        private_playlists = cur.fetchall()
+
+        for playlist in private_playlists:
+            cur.execute(
+                'SELECT user_id_sender FROM FRIENDSHIP_REQUEST WHERE user_id_receiver = %s and is_approved = %s',
+                (playlist[1], True))
+            friends = cur.fetchall()
+
+            if data['user_id'] not in friends:
+                private_playlists.remove(playlist)
+
+        cur.execute(
+            'SELECT * FROM PLAYLIST WHERE type = %s', ('public',))
+        public_playlists = cur.fetchall()
+
+        playlists = private_playlists + public_playlists
+
+        cur.close()
+        conn.close()
+
+        return jsonify({'playlists': playlists}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Expired token'}), 400
