@@ -60,21 +60,10 @@ def getArtistsList():
     cur.close()
     conn.close()
 
-    # Format the response
-    artists_list = []
-    for artist in artists:
-        artist_dict = {
-            'first_name': artist[0],
-            'last_name': artist[1],
-            'bio': artist[2]
-        }
-        artists_list.append(artist_dict)
-
-    return jsonify({'artists': artists_list}), 200
+    return jsonify({'artists': artists}), 200
 
 
-
-@artist.route('/artist/<int:artist_id>')
+@artist.route('/<int:artist_id>')
 def getArtist(artist_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -87,22 +76,17 @@ def getArtist(artist_id):
         WHERE a.artist_id = %s AND u.is_artist = %s
         ''', (artist_id, True)
     )
-    artist = cur.fetchone()
+    desired_artist = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    if artist:
-        return jsonify({'artist': {
-            'first_name': artist[0],
-            'last_name': artist[1],
-            'bio': artist[2]
-        }}), 200
-    else:
-        return jsonify({'message': 'Artist not found'}), 404
+    if desired_artist:
+        return jsonify({'artist': desired_artist}), 200
+    return jsonify({'message': 'Artist not found'}), 404
 
 
-@artist.route('/artist/<int:artist_id>/albums')
+@artist.route('/<int:artist_id>/albums')
 def getArtistAlbums(artist_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -122,7 +106,7 @@ def getArtistAlbums(artist_id):
     return jsonify({'albums': albums}), 200
 
 
-@artist.route('/artist/<int:artist_id>/album/<int:album_id>/tracks')
+@artist.route('/<int:artist_id>/album/<int:album_id>/tracks')
 def getArtistAlbumTracks(artist_id, album_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -140,8 +124,8 @@ def getArtistAlbumTracks(artist_id, album_id):
     return jsonify({'tracks': tracks}), 200
 
 
-@artist.route('/artist/<int:artist_id>/album/<int:album_id>/addTrack', methods=['GET', 'POST'])
-def addTrack(artist_id, album_id):
+@artist.route('/<int:album_id>/addTrackToAlbum', methods=['GET', 'POST'])
+def addTrackToAlbum(album_id):
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
         if not token:
@@ -166,6 +150,10 @@ def addTrack(artist_id, album_id):
 
             if user:
                 cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
+                cur.execute(
                     'INSERT INTO TRACKS (artist_id, album_id, name_of_track, age_category, lyric, length, date_of_release) \
                     VALUES (%s, %s, %s, %s, %s, %s, %s)',
                     (artist_id, album_id, track_name, age_category, lyric, length, date_of_release))
@@ -177,10 +165,57 @@ def addTrack(artist_id, album_id):
             return jsonify({'message': 'Invalid credentials'}), 401
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Expired token'}), 400
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
+    
+
+@artist.route('/addTrack', methods=['GET', 'POST'])
+def addTrack():
+    if request.method == 'POST':
+        token = request.headers.get('Authorization').split()[1]
+        if not token:
+            return jsonify({'error': 'Missing token'}), 400
+
+        try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+            conn = get_db_connection()
+            cur = conn.cursor()
+
+            json_file = request.get_json()
+            track_name = json_file['track_name']
+            age_category = json_file['age_category']
+            lyric = json_file['lyric']
+            length = json_file['length']
+            date_of_release = json_file['date_of_release']
+
+            cur.execute(
+                'SELECT * FROM USERS WHERE is_artist = %s and user_id = %s', (True, data['user_id']))
+            user = cur.fetchone()
+
+            if user:
+                cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
+                cur.execute(
+                    'INSERT INTO TRACKS (artist_id, album_id, name_of_track, age_category, lyric, length, date_of_release) \
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                    (artist_id, None, track_name, age_category, lyric, length, date_of_release))
+                conn.commit()
+
+                cur.close()
+                conn.close()
+                return jsonify({'message': 'Track added successfully'}), 200
+            return jsonify({'message': 'Invalid credentials'}), 401
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Expired token'}), 400
+    else:
+        return jsonify({'message': 'Invalid credentials'}), 401
 
 
-@artist.route('/artist/<int:artist_id>/album/<int:album_id>/deleteTrack/<int:track_id>', methods=['GET', 'POST'])
-def deleteTrack(artist_id, album_id, track_id):
+@artist.route('/album/<int:album_id>/deleteTrack/<int:track_id>', methods=['GET', 'POST'])
+def deleteTrack(album_id, track_id):
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
         if not token:
@@ -198,6 +233,10 @@ def deleteTrack(artist_id, album_id, track_id):
 
             if user:
                 cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
+                cur.execute(
                     'DELETE FROM TRACKS WHERE artist_id = %s AND album_id = %s AND track_id = %s',
                     (artist_id, album_id, track_id))
                 conn.commit()
@@ -210,8 +249,8 @@ def deleteTrack(artist_id, album_id, track_id):
             return jsonify({'error': 'Expired token'}), 400
 
 
-@artist.route('/artist/<int:artist_id>/addAlbum', methods=['GET', 'POST'])
-def addAlbum(artist_id):
+@artist.route('/addAlbum', methods=['GET', 'POST'])
+def addAlbum():
     if request.method == 'POST':
         token = request.headers.get('Authorization')
         if not token or len(token.split()) < 2:
@@ -228,7 +267,7 @@ def addAlbum(artist_id):
             name_of_album = json_file['name_of_album']
             tracks = json_file.get('tracks')
 
-            if not name_of_album or not tracks or not isinstance(tracks, list) or len(tracks) == 0:
+            if not name_of_album or not tracks or len(tracks) == 0:
                 return jsonify({'error': 'Album name and tracks are required'}), 400
 
             cur.execute(
@@ -237,6 +276,10 @@ def addAlbum(artist_id):
 
             if user:
                 try:
+                    cur.execute(
+                        'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                    artist_id = cur.fetchone()[0]
+
                     cur.execute(
                         'INSERT INTO ALBUMS (artist_id, name_of_album) VALUES (%s, %s) RETURNING album_id',
                         (artist_id, name_of_album))
@@ -275,8 +318,8 @@ def addAlbum(artist_id):
             return jsonify({'error': 'Invalid token'}), 400
 
 
-@artist.route('/artist/<int:artist_id>/album/<int:album_id>/delete', methods=['DELETE'])
-def deleteAlbum(artist_id, album_id):
+@artist.route('/album/<int:album_id>/delete', methods=['DELETE'])
+def deleteAlbum(album_id):
     token = request.headers.get('Authorization')
     if not token or len(token.split()) < 2:
         return jsonify({'error': 'Missing token'}), 400
@@ -293,6 +336,10 @@ def deleteAlbum(artist_id, album_id):
         user = cur.fetchone()
 
         if user:
+            cur.execute(
+                'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+            artist_id = cur.fetchone()[0]
+
             cur.execute(
                 'SELECT * FROM ALBUMS WHERE album_id = %s AND artist_id = %s', (album_id, artist_id))
             album = cur.fetchone()
@@ -321,8 +368,8 @@ def deleteAlbum(artist_id, album_id):
         return jsonify({'error': 'Invalid token'}), 400
 
 
-@artist.route('/artist/<int:artist_id>/addConcert', methods=['GET', 'POST'])
-def addConcert(artist_id):
+@artist.route('/addConcert', methods=['GET', 'POST'])
+def addConcert():
     if request.method == 'POST':
         token = request.headers.get('Authorization')
         if not token or len(token.split()) < 2:
@@ -348,6 +395,10 @@ def addConcert(artist_id):
 
             if user:
                 cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
+                cur.execute(
                     'INSERT INTO CONCERTS (artist_id, date_of_concert, cost) VALUES (%s, %s, %s)',
                     (artist_id, date_of_concert, cost))
                 conn.commit()
@@ -362,8 +413,8 @@ def addConcert(artist_id):
             return jsonify({'error': 'Invalid token'}), 400
 
 
-@artist.route('/artist/<int:artist_id>/cancleConcert/<int:concert_id>', methods=['GET', 'POST'])
-def cancleConcert(artist_id, concert_id):
+@artist.route('/cancleConcert/<int:concert_id>', methods=['GET', 'POST'])
+def cancleConcert(concert_id):
     if request.method == 'POST':
         token = request.headers.get('Authorization')
         if not token or len(token.split()) < 2:
@@ -381,6 +432,10 @@ def cancleConcert(artist_id, concert_id):
             user = cur.fetchone()
 
             if user:
+                cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
                 cur.execute(
                     'SELECT 1 FROM CONCERTS WHERE concert_id = %s AND artist_id = %s',
                     (concert_id, artist_id))
@@ -411,13 +466,13 @@ def cancleConcert(artist_id, concert_id):
             return jsonify({"error": str(e)}), 500
 
 
-@artist.route('/artist/<int:artist_id>/genres')
+@artist.route('/<int:artist_id>/genres')
 def getArtistGenres(artist_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
     cur.execute(
-        'SELECT geners_name FROM ARTIST_GENERS WHERE artist_id = %s',
+        'SELECT artist_id, geners_name FROM ARTIST_GENERS WHERE artist_id = %s',
         (artist_id,))
     genres = cur.fetchall()
 
@@ -427,14 +482,16 @@ def getArtistGenres(artist_id):
     return jsonify({'genres': genres}), 200
 
 
-@artist.route('/artist/<int:artist_id>/addGenre', methods=['GET', 'POST'])
-def addGenre(artist_id):
+@artist.route('/addGenre', methods=['GET', 'POST'])
+def addGenre():
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
         if not token:
             return jsonify({'error': 'Missing token'}), 400
 
         try:
+            data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
             conn = get_db_connection()
             cur = conn.cursor()
 
@@ -442,10 +499,14 @@ def addGenre(artist_id):
             genre_name = json_file['genre_name']
 
             cur.execute(
-                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (artist_id, True))
+                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (data['user_id'], True))
             user = cur.fetchone()
 
             if user:
+                cur.execute(
+                    'SELECT artist_id FROM ARTIST WHERE user_id = %s', (data['user_id'],))
+                artist_id = cur.fetchone()[0]
+
                 cur.execute(
                     'INSERT INTO ARTIST_GENERS (artist_id, geners_name) VALUES (%s, %s)',
                     (artist_id, genre_name))
