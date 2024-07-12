@@ -1,7 +1,6 @@
 import datetime
 from flask import Blueprint, request, jsonify
 import jwt
-from sqlalchemy import Null
 from . import get_db_connection, SECRET_KEY
 
 home = Blueprint('home', __name__)
@@ -176,11 +175,11 @@ def followUser(user_id):
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM USERS WHERE user_id = %s AND is_permium = %s', (data['user_id'], True))
+                'SELECT * FROM USERS WHERE user_id = %s AND is_premium = %s', (data['user_id'], True))
             current_user = cur.fetchone()
 
             cur.execute(
-                'SELECT * FROM Users WHERE user_id = %s and is_permium = %s', (user_id, True))
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s', (user_id, True))
             followed_user = cur.fetchone()
 
             if not current_user or not followed_user:
@@ -218,7 +217,7 @@ def followArtist(artist_id):
             user = cur.fetchone()
 
             cur.execute(
-                'SELECT * FROM Artists WHERE artist_id = %s', (artist_id,))
+                'SELECT * FROM Artist WHERE artist_id = %s', (artist_id,))
             artist = cur.fetchone()
 
             if not artist or not user:
@@ -283,7 +282,7 @@ def unfollowArtist(artist_id):
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM Artists WHERE artist_id = %s', (artist_id,))
+                'SELECT * FROM Artist WHERE artist_id = %s', (artist_id,))
             artist = cur.fetchone()
 
             if not artist:
@@ -376,7 +375,7 @@ def createPlaylist():
             type_of_playlist = json_file['type']
 
             cur.execute(
-                'INSERT INTO PLAYLISTS (user_id, name_of_playlist, type) VALUES (%s, %s, %s)',
+                'INSERT INTO PLAYLIST (user_id, name_of_playlist, type) VALUES (%s, %s, %s)',
                 (data['user_id'], name_of_playlist, type_of_playlist))
             conn.commit()
 
@@ -409,7 +408,7 @@ def addTrackToPlaylist(playlist_id):
                 return jsonify({'error': 'User not found or not premium'}), 400
 
             cur.execute(
-                'SELECT * FROM PLAYLISTS WHERE playlist_id = %s', (playlist_id,))
+                'SELECT * FROM PLAYLIST WHERE playlist_id = %s', (playlist_id,))
             playlist = cur.fetchone()
 
             if not playlist:
@@ -433,23 +432,16 @@ def addTrackToPlaylist(playlist_id):
 
 @home.route('/getAllPlaylists')
 def getAllPlaylists():
-    token = request.headers.get('Authorization').split()[1]
-    if not token:
-        return jsonify({'error': 'Missing token'}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
 
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
+    cur.execute('SELECT * FROM PLAYLIST')
+    playlists = cur.fetchall()
 
-        cur.execute('SELECT * FROM PLAYLISTS')
-        playlists = cur.fetchall()
+    cur.close()
+    conn.close()
 
-        cur.close()
-        conn.close()
-
-        return jsonify({'playlists': playlists}), 200
-    except jwt.ExpiredSignatureError:
-        return jsonify({'error': 'Expired token'}), 400
+    return jsonify({'playlists': playlists}), 200
 
 
 @home.route('/getAllPlaylistsOfUser')
@@ -464,7 +456,7 @@ def getAllPlaylistsOfUser():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute('SELECT * FROM PLAYLISTS WHERE user_id = %s',
+        cur.execute('SELECT * FROM PLAYLIST WHERE user_id = %s',
                     (data['user_id'],))
         playlists = cur.fetchall()
 
@@ -476,7 +468,7 @@ def getAllPlaylistsOfUser():
         return jsonify({'error': 'Expired token'}), 400
 
 
-@home.route('/sendFriendshipRequest', methods=['GET', 'POST'])
+@home.route('/sendOrGetFriendshipRequest', methods=['GET', 'POST'])
 def sendOrGetFriendshipRequest():
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
@@ -524,15 +516,15 @@ def sendOrGetFriendshipRequest():
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM Users WHERE user_id = %s and is_permium = %s',
+                'SELECT * FROM Users WHERE user_id = %s and is_premium = %s',
                 (data['user_id'], True))
             user = cur.fetchone()
 
             if not user:
                 return jsonify({'error': 'User not found or not premium'}), 400
 
-            cur.execute('SELECT * FROM FRIENDSHIP_REQUEST WHERE user_id_receiver = %s and is_approved = %s',
-                        (data['user_id'], Null))
+            cur.execute('SELECT * FROM FRIENDSHIP_REQUEST WHERE user_id_receiver = %s and is_approved IS NULL',
+                        (data['user_id'],))
             requests = cur.fetchall()
 
             cur.close()
