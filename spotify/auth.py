@@ -49,7 +49,7 @@ def login():
                     (email,))
         user = cur.fetchone()
 
-        if user[1] is not None and user[1] < datetime.datetime.now():
+        if user[1] is not None and user[1] < datetime.datetime.now().date():
             cur.execute(
                 'UPDATE Users SET is_premium = %s, start_premium = %s, end_premium = %s WHERE email = %s',
                 (False, None, None, email)
