@@ -167,7 +167,7 @@ def addTrackToAlbum(album_id):
             return jsonify({'error': 'Expired token'}), 400
     else:
         return jsonify({'message': 'Invalid credentials'}), 401
-    
+
 
 @artist.route('/addTrack', methods=['GET', 'POST'])
 def addTrack():
@@ -214,9 +214,9 @@ def addTrack():
         return jsonify({'message': 'Invalid credentials'}), 401
 
 
-@artist.route('/deleteTrack/<int:track_id>', methods=['POST'])
+@artist.route('/deleteTrack/<int:track_id>', methods=['DELETE'])
 def deleteTrack(track_id):
-    if request.method == 'POST':
+    if request.method == 'DELETE':
         token = request.headers.get('Authorization').split()[1]
         if not token:
             return jsonify({'error': 'Missing token'}), 400
@@ -239,7 +239,7 @@ def deleteTrack(track_id):
                 cur.execute(
                     'SELECT track_id FROM TRACKS WHERE track_id = %s', (track_id,))
                 exist = cur.fetchone()
-                if exist == None:
+                if exist is None:
                     return jsonify({'message': 'Track does not exist'}), 400
                 cur.execute(
                     'DELETE FROM TRACKS WHERE artist_id = %s AND track_id = %s',
@@ -476,9 +476,15 @@ def getArtistGenres(artist_id):
     conn = get_db_connection()
     cur = conn.cursor()
 
+    # select first_name, last_name from Users and artist_id, geners_name from ARTIST_GENERS
     cur.execute(
-        'SELECT artist_id, geners_name FROM ARTIST_GENERS WHERE artist_id = %s',
+        'SELECT ag.artist_id, u.first_name, u.last_name, ag.geners_name \
+        FROM ARTIST_GENERS AS ag \
+        JOIN ARTIST AS a ON ag.artist_id = a.artist_id \
+        JOIN USERS AS u ON a.user_id = u.user_id \
+        WHERE ag.artist_id = %s',
         (artist_id,))
+
     genres = cur.fetchall()
 
     cur.close()

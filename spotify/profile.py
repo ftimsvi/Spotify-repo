@@ -131,9 +131,8 @@ def upgradeToPremium():
                 value = 60
             else:
                 return jsonify({'message': 'Invalid day of subscription duration.'}), 401
-            
 
-            if user == False:
+            if user:
                 cur.execute('UPDATE Users SET balance = %s, is_premium = %s, start_premium = %s, end_premium = %s WHERE user_id = %s',
                             (user[7]-value, True, datetime.datetime.now(), datetime.datetime.now() + datetime.timedelta(days=int(premium_duration)), data['user_id']))
                 conn.commit()
@@ -141,8 +140,7 @@ def upgradeToPremium():
                 cur.close()
                 conn.close()
                 return jsonify({'message': 'Upgraded to premium successfully'}), 200
-            else:
-                return jsonify({'message': 'User is already premium'}), 401
+            return jsonify({'message': 'User is already premium'}), 401
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Expired token'}), 400
 

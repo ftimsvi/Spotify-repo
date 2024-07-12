@@ -8,8 +8,8 @@ SECRET_KEY = 'you_will_never_guess'
 def get_db_connection():
     return psycopg2.connect(
         database='spotify_db',
-        user='admin',
-        password='admin',
+        user='postgres',
+        password='PGAdmin',
         host='localhost',
         port='5432'
     )
