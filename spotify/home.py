@@ -20,6 +20,13 @@ def buyTicket(concert_id):
             conn = get_db_connection()
             cur = conn.cursor()
 
+            cur.execute('SELECT * FROM Users WHERE user_id = %s and is_premium = %s',
+                        (data['user_id'], True))
+            user = cur.fetchone()
+
+            if not user:
+                return jsonify({'error': 'User not found or not premium'}), 400
+
             cur.execute(
                 'SELECT balance FROM Users WHERE user_id = %s', (data['user_id'],))
             balance = cur.fetchone()
@@ -169,15 +176,15 @@ def followUser(user_id):
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (data['user_id'], False))
+                'SELECT * FROM USERS WHERE user_id = %s AND is_permium = %s', (data['user_id'], True))
             current_user = cur.fetchone()
 
             cur.execute(
-                'SELECT * FROM Users WHERE user_id = %s', (user_id,))
+                'SELECT * FROM Users WHERE user_id = %s and is_permium = %s', (user_id, True))
             followed_user = cur.fetchone()
 
-            if not followed_user:
-                return jsonify({'error': 'User not found'}), 400
+            if not current_user or not followed_user:
+                return jsonify({'error': 'User not found or not permium'}), 400
 
             if current_user:
                 cur.execute(
@@ -207,14 +214,14 @@ def followArtist(artist_id):
             cur = conn.cursor()
 
             cur.execute(
-                'SELECT * FROM USERS WHERE user_id = %s AND is_artist = %s', (data['user_id'], True))
+                'SELECT * FROM USERS WHERE user_id = %s AND is_premium = %s', (data['user_id'], True))
             user = cur.fetchone()
 
             cur.execute(
                 'SELECT * FROM Artists WHERE artist_id = %s', (artist_id,))
             artist = cur.fetchone()
 
-            if not artist:
+            if not artist or not user:
                 return jsonify({'error': 'Artist not found'}), 400
 
             if user:
@@ -226,8 +233,6 @@ def followArtist(artist_id):
                 cur.close()
                 conn.close()
                 return jsonify({'message': 'Artist followed successfully'}), 200
-
-            return jsonify({'message': 'Artist followed successfully'}), 200
         except jwt.ExpiredSignatureError:
             return jsonify({'error': 'Expired token'}), 400
 
@@ -309,7 +314,7 @@ def getUserFollowers():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id1_following FROM FOLLOWING WHERE user_id2_followed = %s)',
+            'SELECT user_id, first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id1_following FROM FOLLOWING WHERE user_id2_followed = %s)',
             (data['user_id'],))
         followers = cur.fetchall()
 
@@ -334,7 +339,7 @@ def getUserFollowings():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
+            'SELECT user_id, first_name, last_name FROM USERS WHERE user_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
             (data['user_id'],))
         followings = cur.fetchall()
 
