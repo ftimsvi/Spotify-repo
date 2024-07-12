@@ -643,3 +643,23 @@ def showPlaylistsToUser():
         return jsonify({'playlists': playlists}), 200
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Expired token'}), 400
+
+
+# get all information about all tracks
+@home.route('/getAllTracks')
+def getAllTracks():
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        'SELECT t.track_id, t.name_of_track, t.age_category, t.lyric, t.length, t.date_of_release, a.name_of_album, art.first_name, art.last_name, u.first_name, u.last_name \
+            FROM TRACKS t \
+            LEFT JOIN ALBUMS a ON t.album_id = a.album_id \
+            JOIN ARTIST art ON t.artist_id = art.artist_id \
+            JOIN USERS u ON art.user_id = u.user_id;')
+    tracks = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({'tracks': tracks}), 200
