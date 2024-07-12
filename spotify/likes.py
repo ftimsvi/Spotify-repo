@@ -274,7 +274,6 @@ def countLikesOfPlaylist():
             return jsonify({'error': 'Expired token'}), 400
 
 
-# get tracks that are liked by the friends of the user
 @likes.route('/getTracksLikedByFriends')
 def getTracksLikedByFriends():
     token = request.headers.get('Authorization').split()[1]
@@ -303,7 +302,12 @@ def getTracksLikedByFriends():
         tracks = []
         for friend in friends:
             cur.execute(
-                'SELECT track_id FROM SUBSCRIBERS_LIKES_TRACKS WHERE user_id = %s',
+                'SELECT T.track_id, U.first_name, U.last_name, T.name_of_track, T.age_category, T.lyric, T.length, T.date_of_release \
+                FROM SUBSCRIBERS_LIKES_TRACKS SLT \
+                JOIN TRACKS T ON SLT.track_id = T.track_id \
+                JOIN ARTIST A ON T.artist_id = A.artist_id \
+                JOIN USERS U ON A.user_id = U.user_id \
+                WHERE A.user_id = %s',
                 (friend,))
             tracks += cur.fetchall()
 
