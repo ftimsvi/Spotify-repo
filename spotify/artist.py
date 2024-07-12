@@ -214,8 +214,8 @@ def addTrack():
         return jsonify({'message': 'Invalid credentials'}), 401
 
 
-@artist.route('/album/<int:album_id>/deleteTrack/<int:track_id>', methods=['GET', 'POST'])
-def deleteTrack(album_id, track_id):
+@artist.route('/deleteTrack/<int:track_id>', methods=['POST'])
+def deleteTrack(track_id):
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
         if not token:
@@ -237,8 +237,13 @@ def deleteTrack(album_id, track_id):
                 artist_id = cur.fetchone()[0]
 
                 cur.execute(
-                    'DELETE FROM TRACKS WHERE artist_id = %s AND album_id = %s AND track_id = %s',
-                    (artist_id, album_id, track_id))
+                    'SELECT track_id FROM TRACKS WHERE track_id = %s', (track_id,))
+                exist = cur.fetchone()
+                if exist == None:
+                    return jsonify({'message': 'Track does not exist'}), 400
+                cur.execute(
+                    'DELETE FROM TRACKS WHERE artist_id = %s AND track_id = %s',
+                    (artist_id, track_id))
                 conn.commit()
 
                 cur.close()
@@ -249,7 +254,7 @@ def deleteTrack(album_id, track_id):
             return jsonify({'error': 'Expired token'}), 400
 
 
-@artist.route('/addAlbum', methods=['GET', 'POST'])
+@artist.route('/addAlbum', methods=['POST'])
 def addAlbum():
     if request.method == 'POST':
         token = request.headers.get('Authorization')
