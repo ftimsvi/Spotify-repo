@@ -325,6 +325,34 @@ def getUserFollowers():
         return jsonify({'error': 'Expired token'}), 400
 
 
+@home.route('/getUserFollowedArtists')
+def getUserFollowedArtists():
+    token = request.headers.get('Authorization').split()[1]
+    if not token:
+        return jsonify({'error': 'Missing token'}), 400
+
+    try:
+        data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute(
+            'SELECT a.artist_id, u.first_name, u.last_name \
+            FROM ARTIST a \
+            JOIN USERS u ON a.artist_id = u.user_id \
+            WHERE artist_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
+            (data['user_id'],))
+        followed_artists = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({'followed_artists': followed_artists}), 200
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Expired token'}), 400
+
+
 @home.route('/getUserFollowings')
 def getUserFollowings():
     token = request.headers.get('Authorization').split()[1]

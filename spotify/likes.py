@@ -145,7 +145,12 @@ def getAlbumsLikedByUser():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT album_id FROM SUBSCRIBERS_LIKES_ALBUM WHERE user_id = %s',
+            'SELECT A.album_id, AR.artist_id, U.first_name, U.last_name \
+            FROM SUBSCRIBERS_LIKES_ALBUM SLA \
+            JOIN ALBUMS A ON SLA.album_id = A.album_id \
+            JOIN ARTIST AR ON A.artist_id = AR.artist_id \
+            JOIN USERS U ON AR.user_id = U.user_id \
+            WHERE SLA.user_id = %s',
             (data['user_id'],))
         albums = cur.fetchall()
 
@@ -230,7 +235,11 @@ def getPlaylistsLikedByUser():
         cur = conn.cursor()
 
         cur.execute(
-            'SELECT playlist_id FROM SUBSCRIBERS_LIKES_PLAYLIST WHERE user_id = %s',
+            'SELECT P.playlist_id, P.name_of_playlist, U.first_name, U.last_name \
+            FROM SUBSCRIBERS_LIKES_PLAYLIST SLP \
+            JOIN PLAYLIST P ON SLP.playlist_id = P.playlist_id \
+            JOIN Users U ON U.user_id = P.user_id \
+            WHERE SLP.user_id = %s',
             (data['user_id'],))
         playlists = cur.fetchall()
 
