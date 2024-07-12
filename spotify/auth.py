@@ -2,7 +2,6 @@ import datetime
 
 import jwt
 from flask import Blueprint, jsonify, request
-from flask_login import login_required
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from . import SECRET_KEY, get_db_connection
@@ -46,22 +45,22 @@ def login():
         password = json_file['password']
 
         # check if user exists
-        cur.execute('SELECT * FROM Users WHERE email = %s',
+        cur.execute('SELECT user_id, end_premium, password FROM Users WHERE email = %s',
                     (email,))
         user = cur.fetchone()
-        print(user)
-        # if user[1] < datetime.datetime.now():
-        #     cur.execute(
-        #         'UPDATE Users SET is_premium = %s, start_premium = %s, end_premium = %s WHERE email = %s',
-        #         (False, None, None, email)
-        #     )
-        #     conn.commit()
 
-        #     cur.close()
-        #     conn.close()
-        #     return jsonify({'message': 'Your premium subscription has expired'}), 401
+        if user[1] is not None and user[1] < datetime.datetime.now():
+            cur.execute(
+                'UPDATE Users SET is_premium = %s, start_premium = %s, end_premium = %s WHERE email = %s',
+                (False, None, None, email)
+            )
+            conn.commit()
 
-        if user and check_password_hash(user[3], password):
+            cur.close()
+            conn.close()
+            return jsonify({'message': 'Your premium subscription has expired'}), 401
+
+        if user and check_password_hash(user[2], password):
             token = jwt.encode({
                 'user_id': user[0],
                 'exp': datetime.datetime.now() + datetime.timedelta(hours=24)
