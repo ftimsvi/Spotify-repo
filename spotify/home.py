@@ -344,7 +344,11 @@ def getUserFollowedArtists():
         cur.execute(
             'SELECT a.artist_id, u.first_name, u.last_name \
             FROM ARTIST a \
+<<<<<<< HEAD
             JOIN USERS u ON a.artist_id = u.artist_id \
+=======
+            JOIN USERS u ON a.user_id = u.user_id \
+>>>>>>> bc49f039b9b5d94e56626e9e74e79b75022c557f
             WHERE artist_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
             (data['user_id'],))
         followed_artists = cur.fetchall()
