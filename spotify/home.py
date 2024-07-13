@@ -1,7 +1,9 @@
 import datetime
-from flask import Blueprint, request, jsonify
+
 import jwt
-from . import get_db_connection, SECRET_KEY
+from flask import Blueprint, jsonify, request
+
+from . import SECRET_KEY, get_db_connection
 
 home = Blueprint('home', __name__)
 

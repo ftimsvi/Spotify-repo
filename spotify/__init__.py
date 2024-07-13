@@ -1,15 +1,15 @@
 import psycopg2
 from flask import Flask
 
-
 SECRET_KEY = 'you_will_never_guess'
-
+masih_db_user = "admin"
+masih_db_pass = "admin"
 
 def get_db_connection():
     return psycopg2.connect(
         database='spotify_db',
-        user='postgres',
-        password='PGAdmin',
+        user=masih_db_user,
+        password=masih_db_pass,
         host='localhost',
         port='5432'
     )
