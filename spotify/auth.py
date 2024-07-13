@@ -112,6 +112,17 @@ def signup():
             hashed_password = generate_password_hash(
                 password, method='pbkdf2:sha256')
 
+        try:
+            cur.execute("CALL insert_user(%s, %s, %s, %s, %s, %s);",
+                    (first_name, last_name, hashed_password, date_of_birth, email, country))
+            conn.commit()
+            cur.close()
+            conn.close()
+            return jsonify({'message': 'User created successfully'}), 201
+        except Exception as e:
+            conn.rollback()
+            return jsonify({'error': str(e)}), 500
+
             cur.execute(
                 'INSERT INTO USERS (first_name, last_name, password, date_of_birth, email, country) VALUES (%s, %s, %s, %s, %s, %s)',
                 (first_name, last_name, hashed_password,

@@ -314,3 +314,20 @@ CREATE INDEX idx_message_sender ON MESSAGE(user_id_sender);
 
 -- Index on user_id_receiver for faster joins
 CREATE INDEX idx_message_receiver ON MESSAGE(user_id_receiver);
+
+CREATE OR REPLACE PROCEDURE insert_user(
+    IN p_first_name VARCHAR,
+    IN p_last_name VARCHAR,
+    IN p_password VARCHAR,
+    IN p_date_of_birth DATE,
+    IN p_email VARCHAR,
+    IN p_country VARCHAR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO Users (first_name, last_name, password, date_of_birth, email, country)
+    VALUES (p_first_name, p_last_name, p_password, p_date_of_birth, p_email, p_country);
+END;
+$$;
+
