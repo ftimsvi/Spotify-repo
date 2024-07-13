@@ -227,8 +227,12 @@ def followArtist(artist_id):
 
             if user:
                 cur.execute(
+                    'SELECT user_id FROM Artist WHERE artist_id = %s', (artist_id,))
+                artist_user_id = cur.fetchone()
+
+                cur.execute(
                     'INSERT INTO FOLLOWING (user_id1_following, user_id2_followed) VALUES (%s, %s)',
-                    (data['user_id'], artist_id))
+                    (data['user_id'], artist_user_id))
                 conn.commit()
 
                 cur.close()
@@ -342,7 +346,7 @@ def getUserFollowedArtists():
         cur.execute(
             'SELECT a.artist_id, u.first_name, u.last_name \
             FROM ARTIST a \
-            JOIN USERS u ON a.artist_id = u.user_id \
+            JOIN USERS u ON a.user_id = u.user_id \
             WHERE artist_id IN (SELECT user_id2_followed FROM FOLLOWING WHERE user_id1_following = %s)',
             (data['user_id'],))
         followed_artists = cur.fetchall()
