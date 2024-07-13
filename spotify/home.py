@@ -709,9 +709,6 @@ def searchTracks():
         } for track in tracks
     ]}), 200
 
-
-
-
 @home.route('/searchUsers', methods=['GET'])
 def searchUsers():
     query = request.args.get('query')
@@ -742,3 +739,48 @@ def searchUsers():
             'country': user[5]
         } for user in users
     ]}), 200
+
+@home.route('/recommendTracks', methods=['GET'])
+def recommendTracks():
+    user_id = request.args.get('user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User ID parameter is required'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    try:
+        # Start the transaction
+        cur.execute("BEGIN")
+        
+        cur.execute("CALL recommend_tracks(%s);", (int(user_id),))
+        
+        # Fetch the results from the refcursor
+        cur.execute('FETCH ALL IN ref')
+        tracks = cur.fetchall()
+        
+        # Commit the transaction
+        cur.execute("COMMIT")
+    except Exception as e:
+        cur.execute("ROLLBACK")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+    return jsonify({'tracks': [
+        {
+            'track_id': track[0],
+            'name_of_track': track[1],
+            'age_category': track[2],
+            'lyric': track[3],
+            'length': track[4],
+            'date_of_release': track[5],
+            'name_of_album': track[6],
+            'first_name': track[7],
+            'last_name': track[8]
+        } for track in tracks
+    ]}), 200
+
+
