@@ -740,47 +740,74 @@ def searchUsers():
         } for user in users
     ]}), 200
 
-@home.route('/recommendTracks', methods=['GET'])
-def recommendTracks():
-    user_id = request.args.get('user_id')
+# @home.route('/recommendTracks', methods=['GET'])
+# def recommendTracks():
+#     user_id = request.args.get('user_id')
     
-    if not user_id:
-        return jsonify({'error': 'User ID parameter is required'}), 400
+#     if not user_id:
+#         return jsonify({'error': 'User ID parameter is required'}), 400
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+#     try:
+#         conn = get_db_connection()
+#         cur = conn.cursor()
 
-    try:
-        # Start the transaction
-        cur.execute("BEGIN")
-        
-        cur.execute("CALL recommend_tracks(%s);", (int(user_id),))
-        
-        # Fetch the results from the refcursor
-        cur.execute('FETCH ALL IN ref')
-        tracks = cur.fetchall()
-        
-        # Commit the transaction
-        cur.execute("COMMIT")
-    except Exception as e:
-        cur.execute("ROLLBACK")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cur.close()
-        conn.close()
+#         procedure_name = 'recommend_tracks'
+#         procedure_params = (user_id,)  # Tuple for parameters
 
-    return jsonify({'tracks': [
-        {
-            'track_id': track[0],
-            'name_of_track': track[1],
-            'age_category': track[2],
-            'lyric': track[3],
-            'length': track[4],
-            'date_of_release': track[5],
-            'name_of_album': track[6],
-            'first_name': track[7],
-            'last_name': track[8]
-        } for track in tracks
-    ]}), 200
+#         cur.execute(f"CALL {procedure_name}(%s::INT)", procedure_params)
 
+#         refcursor = cur.fetchone()[0]  # Assuming the OUT parameter is at index 0
 
+#         # Close the cursor and commit changes (if necessary)
+#         cur.close()
+#         conn.commit()  # Uncomment if your procedure modifies data
+#     # except Exception as e:
+#     #     cur.execute("ROLLBACK")
+#     #     return jsonify({'error': str(e)}), 500
+#     finally:
+#         cur.close()
+#         conn.close()
+
+#     return jsonify({'tracks': [
+#         {
+#             'track_id': track[0],
+#             'name_of_track': track[1],
+#             'age_category': track[2],
+#             'lyric': track[3],
+#             'length': track[4],
+#             'date_of_release': track[5],
+#             'name_of_album': track[6],
+#             'first_name': track[7],
+#             'last_name': track[8]
+#         } for track in tracks
+#     ]}), 200
+
+# @home.route('/recommend_tracks/<int:user_id>')
+# def recommend_tracks(user_id):
+#     try:
+#         conn = get_db_connection()
+#         cur = conn.cursor()
+
+#         # Define procedure name and parameter (OUT parameter requires special handling)
+#         procedure_name = 'recommend_tracks'
+#         procedure_params = (int(user_id),)  # Tuple for parameters
+
+#         # Call the stored procedure using `execute` (not `callproc`)
+#         cur.execute(f"SELECT * FROM {procedure_name}(%s, OUT %s)", procedure_params)
+
+#         # Fetch results from the OUT parameter (refcursor)
+#         refcursor = cur.fetchone()[1]  # Assuming the OUT parameter is at index 1
+
+#         # Fetch all rows from the refcursor
+#         recommended_tracks = cur.fetchmany(rows=10)  # Fetch up to 10 tracks
+
+#         # Close the cursor and commit changes (if necessary)
+#         cur.close()
+#         conn.commit()  # Uncomment if your procedure modifies data
+
+#         # Format and return the recommended tracks as JSON
+#         return jsonify({'tracks': recommended_tracks})
+
+#     except Exception as e:
+#         cur.execute("ROLLBACK")
+#         return jsonify({'error': str(e)}), 500

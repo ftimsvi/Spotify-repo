@@ -145,6 +145,34 @@ def upgradeToPremium():
             return jsonify({'error': 'Expired token'}), 400
 
 
+# @profile.route('/deleteAccount', methods=['DELETE'])
+# def deleteAccount():
+#     token = request.headers.get('Authorization').split()[1]
+#     if not token:
+#         return jsonify({'error': 'Missing token'}), 400
+
+#     try:
+#         data = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+
+#         conn = get_db_connection()
+#         cur = conn.cursor()
+
+#         cur.execute('SELECT * FROM Users WHERE user_id = %s',
+#                     (data['user_id'],))
+#         user = cur.fetchone()
+
+#         if user:
+#             cur.execute('DELETE FROM Users WHERE user_id = %s',
+#                         (data['user_id'],))
+#             conn.commit()
+
+#             cur.close()
+#             conn.close()
+#             return jsonify({'message': 'Account deleted successfully'}), 200
+#         return jsonify({'message': 'Invalid credentials'}), 401
+#     except jwt.ExpiredSignatureError:
+#         return jsonify({'error': 'Expired token'}), 400
+
 @profile.route('/deleteAccount', methods=['DELETE'])
 def deleteAccount():
     token = request.headers.get('Authorization').split()[1]
@@ -156,19 +184,18 @@ def deleteAccount():
 
         conn = get_db_connection()
         cur = conn.cursor()
-
-        cur.execute('SELECT * FROM Users WHERE user_id = %s',
-                    (data['user_id'],))
-        user = cur.fetchone()
-
-        if user:
-            cur.execute('DELETE FROM Users WHERE user_id = %s',
-                        (data['user_id'],))
+        print(data['user_id'])
+        # Call delete_user function
+        deleted = cur.execute('SELECT delete_user(%s::INT)', (data['user_id'],))
+        print(deleted)
+        # Check function return value (boolean)
+        if deleted:
             conn.commit()
-
             cur.close()
             conn.close()
             return jsonify({'message': 'Account deleted successfully'}), 200
-        return jsonify({'message': 'Invalid credentials'}), 401
+        else:
+            return jsonify({'message': 'User not found'}), 404  # Account not found
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Expired token'}), 400
+
