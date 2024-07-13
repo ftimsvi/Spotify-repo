@@ -669,3 +669,76 @@ def getAllTracks():
     conn.close()
 
     return jsonify({'tracks': tracks}), 200
+
+
+@home.route('/searchTracks', methods=['GET'])
+def searchTracks():
+
+    query = request.args.get('query')
+    
+    if not query:
+        return jsonify({'error': 'Query parameter is required'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        'SELECT t.track_id, t.name_of_track, t.age_category, t.lyric, t.length, t.date_of_release, a.name_of_album, u.first_name, u.last_name \
+        FROM TRACKS t \
+        LEFT JOIN ALBUMS a ON t.album_id = a.album_id \
+        JOIN ARTIST art ON t.artist_id = art.artist_id \
+        JOIN USERS u ON art.user_id = u.user_id \
+        WHERE t.name_of_track ILIKE %s;', ('%' + query + '%',)
+    )
+    tracks = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({'tracks': [
+        {
+            'track_id': track[0],
+            'name_of_track': track[1],
+            'age_category': track[2],
+            'lyric': track[3],
+            'length': track[4],
+            'date_of_release': track[5],
+            'name_of_album': track[6],
+            'first_name': track[7],
+            'last_name': track[8]
+        } for track in tracks
+    ]}), 200
+
+
+
+
+@home.route('/searchUsers', methods=['GET'])
+def searchUsers():
+    query = request.args.get('query')
+    
+    if not query:
+        return jsonify({'error': 'Query parameter is required'}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        'SELECT user_id, first_name, last_name, email, date_of_birth, country \
+        FROM USERS \
+        WHERE first_name ILIKE %s OR last_name ILIKE %s;', ('%' + query + '%', '%' + query + '%')
+    )
+    users = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return jsonify({'users': [
+        {
+            'user_id': user[0],
+            'first_name': user[1],
+            'last_name': user[2],
+            'email': user[3],
+            'date_of_birth': user[4],
+            'country': user[5]
+        } for user in users
+    ]}), 200
