@@ -504,6 +504,17 @@ def getAllPlaylistsOfUser():
 
 @home.route('/sendOrGetFriendshipRequest', methods=['GET', 'POST'])
 def sendOrGetFriendshipRequest():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("SELECT delete_unapproved_requests();")
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        conn.close()
     if request.method == 'POST':
         token = request.headers.get('Authorization').split()[1]
         if not token:

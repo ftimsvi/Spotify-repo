@@ -331,3 +331,11 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION delete_unapproved_requests()
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    DELETE FROM friendship_request WHERE is_approved = FALSE;
+END;
+$$;
